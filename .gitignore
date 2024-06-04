@@ -1,0 +1,35 @@
+# Project Specific
+
+# - Windows
+*.sln
+builds/
+bin/
+*.exe
+*.obj
+*.pdb
+
+# - Linux/MacOS
+odin
+!odin/
+odin.dSYM
+*.bin
+demo.bin
+libLLVM*.so*
+
+# shared collection
+shared/
+
+# temp files
+* .ll
+*.bc
+*.ll
+
+*.sublime-workspace
+examples/bug/
+build.sh
+!core/debug/
+
+# RAD debugger project file
+*.raddbg
+
+misc/featuregen/featuregen

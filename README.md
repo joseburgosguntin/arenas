@@ -23,7 +23,6 @@ main :: proc {
     if err != nil {
         return
     }
-    testing.expect_value(t, err, nil)
     defer arena_destroy(&arena)
     context.allocator = arena_allocator(&arena)
 

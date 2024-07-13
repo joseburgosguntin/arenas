@@ -13,7 +13,7 @@ Arena :: struct {
 }
 
 arena_init :: proc(size: uint) -> (arena: Arena, err: mem.Allocator_Error) {
-	cap := cast(uint)cast(uintptr)page.ceil(cast(^u8)cast(uintptr)size)
+	cap := page.ceil(size)
 	buf := raw_data(virtual.reserve(cap) or_return)
 	arena = Arena {
 		buf = buf,

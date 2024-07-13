@@ -43,7 +43,6 @@ checked_add_unsigned :: proc(
 	return result, false
 }
 
-PAGE_SIZE := cast(uint)os.get_page_size()
 checked_add_signed :: proc(
 	a, b: $T,
 ) -> (
@@ -58,23 +57,47 @@ checked_add_signed :: proc(
 	}
 }
 
-ceil :: proc(address: ^$T) -> ^T {
-	addr_uint := cast(uint)cast(uintptr)address
-	next_page_start := floor(cast(^T)cast(uintptr)(addr_uint + PAGE_SIZE))
-	if addr_uint & (PAGE_SIZE - 1) == 0 {
-		return address
 checked_add :: proc {
 	checked_add_unsigned,
 	checked_add_signed,
 }
 
+ceil_integer :: proc(n: $T) -> T where intrinsics.type_is_integer(T) {
+	page_size := cast(uint)os.get_page_size()
+	addr_uint := cast(uint)n
+	res, flag := checked_add(addr_uint, page_size)
+	assert(!flag)
+	next_page_start := floor_integer(addr_uint + page_size)
+	if addr_uint & (page_size - 1) == 0 {
+		return n
 	} else {
 		return next_page_start
 	}
 }
 
-floor :: proc(address: ^$T) -> ^T {
-	return cast(^T)cast(uintptr)(cast(uint)cast(uintptr)address &~ (PAGE_SIZE - 1))
+ceil_ptr :: proc(address: ^$T) -> ^T {
+	res := ceil_integer(cast(uint)cast(uintptr)address)
+	return cast(^T)cast(uintptr)res
+}
+
+ceil :: proc {
+	ceil_ptr,
+	ceil_integer,
+}
+
+floor_integer :: proc(n: $T) -> T where intrinsics.type_is_integer(T) {
+	page_size := cast(uint)os.get_page_size()
+	return n &~ (page_size - 1)
+}
+
+floor_ptr :: proc(address: ^$T) -> ^T {
+	res := floor_integer(cast(uint)cast(uintptr)address)
+	return cast(^T)cast(uintptr)res
+}
+
+floor :: proc {
+	floor_ptr,
+	floor_integer,
 }
 
 @(test)
@@ -95,24 +118,40 @@ test_checked_add :: proc(t: ^testing.T) {
 
 @(test)
 test_ceil :: proc(t: ^testing.T) {
-	n_1 := ceil(cast(^u8)cast(uintptr)(PAGE_SIZE))
-	testing.expect_value(t, n_1, cast(^u8)cast(uintptr)(PAGE_SIZE * 1))
+	page_size := cast(uint)os.get_page_size()
 
-	n_2 := ceil(cast(^u8)cast(uintptr)(PAGE_SIZE + 1))
-	testing.expect_value(t, n_2, cast(^u8)cast(uintptr)(PAGE_SIZE * 2))
+	n_1 := ceil(page_size)
+	testing.expect_value(t, n_1, page_size * 1)
+	p_1 := ceil(cast(^u8)cast(uintptr)(page_size))
+	testing.expect_value(t, p_1, cast(^u8)cast(uintptr)(page_size * 1))
 
-	n_3 := ceil(cast(^u8)cast(uintptr)(PAGE_SIZE - 1))
-	testing.expect_value(t, n_3, cast(^u8)cast(uintptr)(PAGE_SIZE * 1))
+	n_2 := ceil(page_size + 1)
+	testing.expect_value(t, n_2, page_size * 2)
+	p_2 := ceil(cast(^u8)cast(uintptr)(page_size + 1))
+	testing.expect_value(t, p_2, cast(^u8)cast(uintptr)(page_size * 2))
+
+	n_3 := ceil(page_size - 1)
+	testing.expect_value(t, n_3, page_size * 1)
+	p_3 := ceil(cast(^u8)cast(uintptr)(page_size - 1))
+	testing.expect_value(t, p_3, cast(^u8)cast(uintptr)(page_size * 1))
 }
 
 @(test)
 test_floor :: proc(t: ^testing.T) {
-	n_1 := floor(cast(^u8)cast(uintptr)(PAGE_SIZE))
-	testing.expect_value(t, n_1, cast(^u8)cast(uintptr)(PAGE_SIZE * 1))
+	page_size := cast(uint)os.get_page_size()
 
-	n_2 := floor(cast(^u8)cast(uintptr)(PAGE_SIZE + 1))
-	testing.expect_value(t, n_2, cast(^u8)cast(uintptr)(PAGE_SIZE * 1))
+	n_1 := floor(page_size)
+	testing.expect_value(t, n_1, page_size * 1)
+	p_1 := floor(cast(^u8)cast(uintptr)(page_size))
+	testing.expect_value(t, p_1, cast(^u8)cast(uintptr)(page_size * 1))
 
-	n_3 := floor(cast(^u8)cast(uintptr)(PAGE_SIZE - 1))
-	testing.expect_value(t, n_3, cast(^u8)cast(uintptr)(PAGE_SIZE * 0))
+	n_2 := floor(page_size + 1)
+	testing.expect_value(t, n_2, page_size * 1)
+	p_2 := floor(cast(^u8)cast(uintptr)(page_size + 1))
+	testing.expect_value(t, p_2, cast(^u8)cast(uintptr)(page_size * 1))
+
+	n_3 := floor(page_size - 1)
+	testing.expect_value(t, n_3, page_size * 0)
+	p_3 := floor(cast(^u8)cast(uintptr)(page_size - 1))
+	testing.expect_value(t, p_3, cast(^u8)cast(uintptr)(page_size * 0))
 }

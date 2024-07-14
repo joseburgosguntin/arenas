@@ -63,12 +63,11 @@ checked_add :: proc {
 }
 
 ceil_integer :: proc(n: $T) -> T where intrinsics.type_is_integer(T) {
-	page_size := cast(uint)os.get_page_size()
-	addr_uint := cast(uint)n
-	res, flag := checked_add(addr_uint, page_size)
-	assert(!flag)
-	next_page_start := floor_integer(addr_uint + page_size)
-	if addr_uint & (page_size - 1) == 0 {
+	page_size := cast(T)os.get_page_size()
+	added, overflowed := checked_add(n, page_size)
+	assert(!overflowed)
+	next_page_start := floor_integer(added)
+	if added & (page_size - 1) == 0 {
 		return n
 	} else {
 		return next_page_start
@@ -86,7 +85,7 @@ ceil :: proc {
 }
 
 floor_integer :: proc(n: $T) -> T where intrinsics.type_is_integer(T) {
-	page_size := cast(uint)os.get_page_size()
+	page_size := cast(T)os.get_page_size()
 	return n &~ (page_size - 1)
 }
 
